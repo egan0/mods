@@ -54,7 +54,7 @@ case $1 in
      echo "Unknown command: $command. Please use update or restore." ;;
 esac
 
-read -p "Reboot now? " -n 1 -r
+read -p "Reboot now (y/n)? " -n 1 -r
 echo    
 if [[ $REPLY =~ ^[Yy]$ ]]
 then
