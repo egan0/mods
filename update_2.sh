@@ -1,5 +1,6 @@
 #!/bin/bash
 
+
 update() {
     #Backup original files
     cp /usr/lib/python3/dist-packages/OpenScan.py /usr/lib/python3/dist-packages/OpenScantmp.py
