@@ -413,6 +413,28 @@ class TakePhoto(Resource):
 
         return {'message': 'Photo taken and processed successfully'}, 200
 
+@camera_ns.route('/picam2_take_single_photo')
+class TakePhoto(Resource):
+    def get(self):
+        '''Take a single photo'''
+        starttime = time()
+
+        cropx = load_int('cam_cropx')/200
+        cropy = load_int('cam_cropy')/200
+        rotation = load_int('cam_rotation')
+        img = picam2.capture_image()
+
+        if cam_mode != 1:
+            img = img.convert('RGB')
+        w, h = img.size
+
+        if cropx != 0 or cropy != 0:
+            img = img.crop((w*cropx, h*cropy, w * (1-cropx), h * (1-cropy)))
+
+        img.save("/home/pi/OpenScan/tmp2/singlephoto.jpg", quality=load_int('cam_jpeg_quality'))
+
+        return {'message': 'Photo taken and processed successfully'}, 200
+
 @camera_ns.route('/picam2_take_photo_raw')
 class TakePhotoRaw(Resource):
     def get(self):

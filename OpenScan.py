@@ -8,6 +8,30 @@ from PIL import Image
 import glob
 
 def stack_images():
+    images = []
+    file_list = sorted(glob.glob('/home/pi/OpenScan/tmp2/stacking/stack*.jpg'))
+
+    for file in file_list:
+        image = cv2.imread(file,1)
+        images.append(image)
+
+    img_sum = np.zeros(image.shape)
+    img_cnt = np.zeros(image.shape)
+
+    for img in images:
+        no_sat = np.any(img < 255, 2)
+        no_sat = np.dstack((no_sat, no_sat, no_sat))
+        img_cnt = img_cnt + no_sat.astype(float)
+        img[np.logical_not(no_sat)] = 0
+        img_sum = img_sum + img.astype(float)
+
+    nonzeros_img_cnt = np.maximum(img_cnt, 1)
+    avg_img = img_sum / nonzeros_img_cnt
+    avg_img[img_cnt == 0] = 255
+    avg_img = np.round(avg_img).astype(np.uint8)
+    cv2.imwrite('/home/pi/OpenScan/tmp2/results.jpg', avg_img, [cv2.IMWRITE_JPEG_QUALITY, 100])
+
+def stack_imagesOLD():
     orb = cv2.ORB_create()
     cv2.ocl.setUseOpenCL(False)
 
@@ -50,12 +74,11 @@ def stack_images():
 
     stacked_image /= len(file_list)
     stacked_image = (stacked_image*255).astype(np.uint8)
-    cv2.imwrite('/home/pi/OpenScan/tmp2/results.jpg', stacked_image, [cv2.IMWRITE_JPEG_QUALITY, 100])
+    cv2.imwrite('/home/pi/OpenScan/tmp2/stacking/results.jpg', stacked_image, [cv2.IMWRITE_JPEG_QUALITY, 100])
     return
 
 def get_centroid():
     downscale = 2
-    #centroidnull = np.array([0, 0, 0, 0], dtype='f')
     image = cv2.imread('/home/pi/OpenScan/tmp2/preview.jpg', cv2.IMREAD_GRAYSCALE)
     image = np.array(image)
     image_width = float(image.shape[0])
@@ -74,11 +97,6 @@ def get_centroid():
     y, x = zip(*data)
     l = len(x)
 
-    #cropx = 0 #load_int('cam_cropx')/200
-    #cropy = 0 #load_int('cam_cropy')/200
-
-    #centroid = str(int(sum(x) / l * downscale)) + ', ' + str(int(sum(y) / l * downscale)) + ', ' + str(int(image_height*0.05)) + ', ' + str(int(image_width*0.05))
-    #centroid = np.array([sum(x) / l * downscale, sum(y) / l * downscale, image_height*0.05, image_width*0.05])
     centroid = np.array([4656.0, 3496.0, image_height*0.1, image_width*0.1])
     return centroid
 
