@@ -4,7 +4,7 @@ from flask_restx import Resource, Api, Namespace
 from picamera2 import Picamera2
 from PIL import Image, ImageDraw, ImageOps, ImageFilter, ImageEnhance, ImageChops, ImageFont
 from time import sleep, time
-from OpenScan import load_int, load_float, load_bool, ringlight, motorrun, get_centroid
+from OpenScan import load_str, load_int, load_float, load_bool, ringlight, motorrun
 from OpenScanSettings import OpenScanSettings, get_openscan_settings, export_settings_to_file
 import RPi.GPIO as GPIO
 from math import sqrt
@@ -291,7 +291,7 @@ def add_histo(img):
     y = hist_image.height - text_height - 10
 
     #img.paste(hist_image, (img.size[0]-new_width1-int(0.01*img.size[0]),img.size[1]-new_height1-int(0.01*img.size[0])))
-    hist_image.save("/home/pi/OpenScan/tmp2/hist.jpg", quality=75)
+    hist_image.save("/home/pi/OpenScan/tmp2/hist.jpg", quality=50)
 
     return img
 
@@ -358,7 +358,7 @@ class CameraInit(Resource):
         )
 
         capture_config = picam2.create_still_configuration(
-            main={"size": (4656, 3496), "format": "RGB888"},
+            main={"size": (resX, resY), "format": "RGB888"},
             controls={"FrameDurationLimits": (1, 1000000)}
         )
 
@@ -376,6 +376,12 @@ class TakePhoto(Resource):
         cropx = load_int('cam_cropx')/200
         cropy = load_int('cam_cropy')/200
         rotation = load_int('cam_rotation')
+        jpg_quality = load_int('cam_jpeg_quality')
+        status = load_str('status_internal_cam') # '--READY--' = preview mode
+
+        if status == '--READY--':
+            jpg_quality = 5
+
         img = picam2.capture_image()
 
         if cam_mode != 1:
@@ -406,10 +412,9 @@ class TakePhoto(Resource):
         if cam_mode != 1 and not load_bool("cam_sharparea") and not load_bool("cam_features"):
             img = add_histo(img)
 
-        img.save("/home/pi/OpenScan/tmp2/preview.jpg", quality=load_int('cam_jpeg_quality'))
+        #cv2.imwrite('/home/pi/OpenScan/tmp2/preview.jpg', img, [cv2.IMWRITE_JPEG_QUALITY, jpg_quality])
+        img.save("/home/pi/OpenScan/tmp2/preview.jpg", quality=jpg_quality)
         print("total " + str(int(1000*(time()-starttime))) + "ms")
-
-        #img = add_histo(img)
 
         return {'message': 'Photo taken and processed successfully'}, 200
 
@@ -461,7 +466,7 @@ class TakePhotoRaw(Resource):
             img = img.transpose(Image.ROTATE_270)
 
         # Create a temporary file
-        temp_filename = "/tmp/raw.jpg"
+        temp_filename = "/home/pi/OpenScan/tmp2/raw.jpg"
         img.save(temp_filename, format='JPEG', quality=load_int('cam_jpeg_quality'))
 
         # Send the file and ensure it's deleted after sending
@@ -553,21 +558,12 @@ class AutoFocus(Resource):
         picam2.set_controls({"AfMode": 1, "AfTrigger": 0})
 
         '''
-        cropx = load_int('cam_cropx')/200
-        cropy = load_int('cam_cropy')/200
-        win_width = 4656 #int(4656 * 0.1)
-        win_height = 3496 #int(3496 * 0.1)
-        x_start = (4656 - win_width) // 2
-        y_start = (3496 - win_height) // 2
-        af_window = [(x_start, y_start, win_width, win_height)]
+        img_center = np.array([4656.0, 3496.0, 4656/2*0.01, 3496/2*0.01])
         '''
-        #centroid = get_centroid().astype(int)
-        #syslog.syslog(str(centroid))
         #picam2.set_controls({
         #     "AfMetering": 1,
-        #     "AfWindows": centroid
+        #     "AfWindows": img_center
         #})
-        #scaler_crop_maximum = picam2.camera_properties['ScalerCropMaximum']
 
         lens_position = picam2.capture_metadata()['LensPosition']
         return {'message': lens_position}, 200

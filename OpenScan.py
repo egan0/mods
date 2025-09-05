@@ -6,78 +6,10 @@ import numpy as np
 from skimage import feature, color, transform, measure
 from PIL import Image
 import glob
-
-def stack_images():
-    images = []
-    file_list = sorted(glob.glob('/home/pi/OpenScan/tmp2/stacking/stack*.jpg'))
-
-    for file in file_list:
-        image = cv2.imread(file,1)
-        images.append(image)
-
-    img_sum = np.zeros(image.shape)
-    img_cnt = np.zeros(image.shape)
-
-    for img in images:
-        no_sat = np.any(img < 255, 2)
-        no_sat = np.dstack((no_sat, no_sat, no_sat))
-        img_cnt = img_cnt + no_sat.astype(float)
-        img[np.logical_not(no_sat)] = 0
-        img_sum = img_sum + img.astype(float)
-
-    nonzeros_img_cnt = np.maximum(img_cnt, 1)
-    avg_img = img_sum / nonzeros_img_cnt
-    avg_img[img_cnt == 0] = 255
-    avg_img = np.round(avg_img).astype(np.uint8)
-    cv2.imwrite('/home/pi/OpenScan/tmp2/results.jpg', avg_img, [cv2.IMWRITE_JPEG_QUALITY, 100])
-
-def stack_imagesOLD():
-    orb = cv2.ORB_create()
-    cv2.ocl.setUseOpenCL(False)
-
-    stacked_image = None
-    first_image = None
-    first_kp = None
-    first_des = None
-
-    file_list = sorted(glob.glob('/home/pi/OpenScan/tmp2/stack*.jpg'))
-    for file in file_list:
-        image = cv2.imread(file,1)
-        imageF = image.astype(np.float32) / 255
-        # compute the descriptors with ORB
-        kp = orb.detect(image, None)
-        kp, des = orb.compute(image, kp)
-        # create BFMatcher object
-        matcher = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
-
-        if first_image is None:
-            # Save keypoints for first image
-            stacked_image = imageF
-            first_image = image
-            first_kp = kp
-            first_des = des
-        else:
-            # Find matches and sort them in the order of their distance
-            matches = matcher.match(first_des, des)
-            matches = sorted(matches, key=lambda x: x.distance)
-
-            src_pts = np.float32(
-                [first_kp[m.queryIdx].pt for m in matches]).reshape(-1, 1, 2)
-            dst_pts = np.float32(
-                [kp[m.trainIdx].pt for m in matches]).reshape(-1, 1, 2)
-
-            # Estimate perspective transformation
-            M, mask = cv2.findHomography(dst_pts, src_pts, cv2.RANSAC, 5.0)
-            w, h, _ = imageF.shape
-            imageF = cv2.warpPerspective(imageF, M, (h, w))
-            stacked_image += imageF
-
-    stacked_image /= len(file_list)
-    stacked_image = (stacked_image*255).astype(np.uint8)
-    cv2.imwrite('/home/pi/OpenScan/tmp2/stacking/results.jpg', stacked_image, [cv2.IMWRITE_JPEG_QUALITY, 100])
-    return
+import sys
 
 def get_centroid():
+    #only for testing
     downscale = 2
     image = cv2.imread('/home/pi/OpenScan/tmp2/preview.jpg', cv2.IMREAD_GRAYSCALE)
     image = np.array(image)
@@ -317,7 +249,6 @@ def take_photo(file):
     AF = load_bool('cam_AFmode')
     camera = load_str('camera')
 
-
     if camera == 'imx519' and AF == True:
         autofocus = ' --autofocus '
     else:
@@ -328,7 +259,7 @@ def take_photo(file):
     else:
         cmd = 'libcamera-still -n --denoise off --sharpness 0 -o ' + filepath2 + ' -t ' + timeout  +' --shutter ' + shutter + ' --saturation ' + saturation + ' --contrast ' + contrast + ' --awbgains '+awbg_red + "," + awbg_blue + ' --gain ' + gain + ' -q ' + str(quality) + autofocus + ' >/dev/null 2>&1'
     #    cmd = 'libcamera-still -n --denoise off --sharpness 0 -o ' + filepath2 + ' -t ' + timeout  +' --shutter ' + shutter + ' --saturation ' + saturation + ' --contrast ' + contrast + ' --awbgains '+awbg_red + "," + awbg_blue + ' --gain ' + gain + ' -q ' + str(quality) + autofocus
-        
+
     system(cmd)
     return cmd
 
