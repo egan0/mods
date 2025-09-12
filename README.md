@@ -16,4 +16,4 @@ This will update three files:
 - flows.json
 
 To remove:
- - sudo bash update_2.sh "remove"
+ - sudo bash update_2.sh "restore"
