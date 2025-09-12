@@ -69,6 +69,9 @@ case $1 in
      echo "Unknown command: $command. Please use update or restore." ;;
 esac
 
+echo "Installing cv2 python library...."
+pip3 install opencv-python
+
 read -p "Reboot now (y/n)? " -n 1 -r
 echo    
 if [[ $REPLY =~ ^[Yy]$ ]]
