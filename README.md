@@ -15,5 +15,7 @@ This will update three files:
 - fla.py
 - flows.json
 
+The opencv python library will also be installed.
+
 To remove:
  - sudo bash update_2.sh "restore"
