@@ -15,8 +15,9 @@ import numpy as np
 from scipy import ndimage
 import socket
 import zipfile
-import cv2
-import syslog
+#import cv2
+#import syslog
+import gc
 
 GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BCM)
@@ -228,8 +229,10 @@ def plot_orb_keypoints(pil_image):
     except:
         return pil_image
 
+    del gray_image
+    gc.collect()
     # Convert the image back to the range [0, 255]
-    display_image = (image * 255).astype(np.uint8)
+    #display_image = (image * 255).astype(np.uint8)
     # Draw the keypoints on the image
     draw = ImageDraw.Draw(pil_image)
     size = max(2,int(image.shape[0]*downscale*0.005))
@@ -252,6 +255,8 @@ def add_histo(img):
 
     img_gray = ImageOps.grayscale(img)
     histogram = img_gray.histogram()
+    del img_gray
+    gc.collect()
     histogram_log = [math.log10(h + 1) for h in histogram]
     histogram_max = max(histogram_log)
     histogram_normalized = [float(h) / histogram_max for h in histogram_log]
@@ -268,6 +273,9 @@ def add_histo(img):
         text = "overexposed"
     if sum(histogram[190:192])<8:
         text = "underexposed"
+    del histogram
+    gc.collect()
+
     font = ImageFont.truetype("DejaVuSans.ttf", 20)
 
     bbox = draw.textbbox((0, 0), text, font=font)
